@@ -13,7 +13,7 @@ Following files are used for analyses:
 *Survey responses are obtained from a file called KEIR72DT/KEIR72FL.DTA. Answers to the question "Ever used anything or tried to delay or avoid getting pregnant”are available as the variable v302a of this data set. Types of the contraceptive methods  related to these answers are available as variable v312. Detailed explanation of the variables in the data sets are available in the document called “Standard Recode Manual for DHS-7”. (ICF. 2018. Demographic and Health Surveys Standard Recode Manual for DHS7. The Demographic and Health Surveys Program. Rockville, Maryland, U.S.A.: ICF)
 
 
-Following geography and demography data files are the component of SUMMER R package (https://cran.r-project.org/web/packages/SUMMER/index.html):
+Geography data obtained from SUMMER R package (https://cran.r-project.org/web/packages/SUMMER/index.html):
 
-Kenyaadministrative area borders are obtained from : kenyaMaps
-Prediction grid is obtained from : kenyaPopulationData
+Kenya administrative level 1 area borders are obtained from : kenyaMaps
+
