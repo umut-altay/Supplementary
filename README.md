@@ -1,4 +1,4 @@
-# Supplementary
+# Data Statement
 
 This document provides information about the data that was used for the paper titled “Accounting for Spatial Anonymization in DHS Household Surveys.
 
