@@ -12,7 +12,7 @@ Access to the data set requires registration. This can be done by following the 
 
 Survey locations are obtained from a shape file called KEGE71FL.shp. 
 Survey responses are obtained from a file called KEIR72DT/KEIR72FL.DTA. 
-Answers to the question "Ever used anything or tried to delay or avoid getting pregnant”are available as variable v302a of this data set. 
+Answers to the question "Ever used anything or tried to delay or avoid getting pregnant” are available as variable v302a of this data set. 
 Types of the contraceptive methods  related to these answers are available as variable v312. 
 Detailed explanation of the variables in the data sets are available in the document called “Standard Recode Manual for DHS-7”. (ICF. 2018. Demographic and Health Surveys Standard Recode Manual for DHS7. The Demographic and Health Surveys Program. Rockville, Maryland, U.S.A.: ICF)
 
