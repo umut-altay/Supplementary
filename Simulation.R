@@ -165,8 +165,7 @@ mesh.s <- inla.mesh.2d(loc.domain = cbind(kenya.data$east, kenya.data$north),
                        max.edge=c(25, 50))
 
 
-
-# Compile .cpp files
+## Compile .cpp files ----
 
 # Model-S
 compile( "standard.cpp")
@@ -180,14 +179,16 @@ save.image("tempImage.RData")
 load("tempImage.RData")
 # 
 
-# set seeds for main and parallel processes
+## Set up parallel processes ----
+
+# Set seeds for main and parallel processes
 set.seed(123)
 totalIter <- length(boundarySc)*length(likelihoodSc[1,])*length(rangeSc)*length(scaleSc)*nSim
 # set seeds
 allSeeds <- sample(1:1000000, totalIter, replace=FALSE)
 
 #install.packages("parallel")
-# set up parallel processes
+# Set up parallel processes
 library(parallel)
 cl <- makeCluster(16)
 clusterEvalQ(cl, {
@@ -207,6 +208,9 @@ clusterEvalQ(cl, {
   load("tempImage.RData")
   })
 clusterExport(cl, c("allSeeds", "totalIter"))
+
+
+## Prepare Inputs ----
 
 # Prepare inputs for model fitting with TMB
 
@@ -346,9 +350,9 @@ tmb_params <- list(alpha = 0.0, # intercept
 rand_effs <- c('Epsilon_s')
 
 
-# Fit the models with TMB
-nLoc <- length(kenya.data$east)
+## Model fitting with TMB ----
 
+nLoc <- length(kenya.data$east)
 
 AdministrativeBorders <- list()
 
