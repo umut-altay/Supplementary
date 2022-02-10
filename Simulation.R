@@ -1,18 +1,20 @@
 ################################################################################
-# Simulation.R                                                            #
+# Simulation.R                                                                 #
 #    This is the main script for the code used to generate results for our     #
 #    manuscript.                                                               #
 ################################################################################
 
-
 #directory = '.'
 
-## Initialization
+~~~~~~~~~~~~~~~~~~~~~~
+## Initialization ----
+~~~~~~~~~~~~~~~~~~~~~~
+  
 # Load libraries
 library(SUMMER)
 library(rgdal)
 library(foreign)
-library(INLA)
+library(INLA)~
 library(TMB)
 library(scoringRules)
 library(foreach)
@@ -24,48 +26,55 @@ source("modSPDEJitter.R")
 source("makeIntegrationPoints.R")
 source('functions.R')
 
+~~~~~~~~~~~~~~~~~~~~~~
+  ## Setup ----
+~~~~~~~~~~~~~~~~~~~~~~
 
-# Setup
-
-# Spatial Range (in kilometers)
+#* Spatial Range ----
+# (in kilometers) 
 rangeSc = c(160, 340)
+
+#* Sub-integration points settings ----
 
 # number of unique sub-integration point radii and angles per integration point 
 # (i.e. the number of sub-integration points per integration point is 
 # nSubRPerPoint * nSubAPerPoint)
+
 nSubRPerPoint = 10
 nSubAPerPoint = 10
 
-# Jittering Factor
+#* Jittering Scheme ---- 
+#( 1--> DHS jittering, 4--> Extra jittering) 
 scaleSc = c(1, 4)
 
-#Likelihood : 
-#1st element : 0/1 stands for Gaussian/Binomial
+#* Likelihood  ----
+#1st element of both likelihoods : 0/1 stands for Gaussian/Binomial
 
 #Gaussian
 likelihoodSc = as.matrix(rbind(likelihood = c(0), nuggetVar = c(0.1), p = c(0)))
 #Binomial
-#likelihoodSc = as.matrix(rbind(likelihood = c(1), nuggetVar = c(0), p = c(0.5)))
+likelihoodSc = as.matrix(rbind(likelihood = c(1), nuggetVar = c(0), p = c(0.5)))
 
-# Provincial Boundaries :
-# TRUE/FALSE : respect/ don1t respect admin1 area boundaries while jittering
+#* Provincial Boundaries ----
+boundarySc = TRUE   #: jittering is done by respecting admin1 borders
+boundarySc = FALSE  #: jittering is done by not respecting admin1 borders
 
-boundarySc = TRUE
+#* Number of simulations ----
+#Set number of simulations per scenario
+nSim = 50  
 
-
-nSim = 50  # number of simulations per scenario
-
-
-# Simulate Data
+~~~~~~~~~~~~~~~~~~~~~~
+  ## Simulate Data ----
+~~~~~~~~~~~~~~~~~~~~~~
 
 set.seed(2345)
 
-#Geography data
+# * Geography data ----
+
 # Load geography and demography data obtained from SUMMER package
 load('image.RData')
 #data(kenyaMaps, package = "SUMMER")             # Maps
 #data(kenyaPopulationData, package = "SUMMER")   # Prediction grid
-
 
 # Load geography of survey data
 kenya.obsLoc <-readOGR("KEGE71FL.shp")
