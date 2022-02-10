@@ -1,6 +1,6 @@
 #=========================== SIMULATIONS  =====================================                           
 #    This is the main script for the code used to generate results for our     
-#    manuscript.                                                               
+#    manuscript "Accounting for Spatial Anonymization in DHS Household Surveys".                                                               
 
 
 # Section 1 : Initialization ===================================================
