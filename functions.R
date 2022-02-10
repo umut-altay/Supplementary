@@ -53,24 +53,32 @@ getContraception = function(dat){
 
 # Matérn covariance function
 covMatern = function(dMat, range, stdDev){
-  Sig = inla.matern.cov(nu = 1,
-                        kappa = sqrt(8*1)/range,
-                        x = dMat,
-                        corr = TRUE)
-  Sig = stdDev^2*Sig
+                     Sig = inla.matern.cov(nu = 1,
+                                           kappa = sqrt(8*1)/range,
+                                           x = dMat,
+                                           corr = TRUE)
+                     Sig = stdDev^2*Sig
 }
 
 ################################################################################
 
 # Simulate from model
-simulateResponses = function(loc, ns, intercept, space.range, space.sigma, gauss.sim){
+  simulateResponses = function(loc, 
+                               ns, 
+                               intercept, 
+                               space.range, 
+                               space.sigma, 
+                               gauss.sim){
+  
   # Spatial covariance matrix
   covMat = covMatern(dMat = as.matrix(dist(loc)),
                      range = space.range,
                      stdDev = space.sigma)
   
   # Add small noise
-  covMat = covMat + space.sigma^2*diag(x = 1e-6^2, nrow = dim(covMat)[1], ncol = dim(covMat)[2])
+  covMat = covMat + space.sigma^2*diag(x = 1e-6^2, 
+                                       nrow = dim(covMat)[1], 
+                                       ncol = dim(covMat)[2])
   
   # Simulate spatial effect
   L = t(chol(covMat))
@@ -150,8 +158,8 @@ random.distance<- function(type, s){
 
 #Argument: length: Number of observations.
 random.angle<- function(length){
-  angle<- (runif(length, min = 0, max = 2*pi))
-  return(angle)
+ angle<- (runif(length, min = 0, max = 2*pi))
+ return(angle)
 }
 
 ################################################################################
@@ -160,8 +168,8 @@ displace <- function(east, north, angle, distance){
   locx=rep(0, length(north))
   locy=rep(0, length(north))	
   for (i in 1:length(north)){
-    (locy[i]=north[i]+((distance[i])*sin(angle[i])))&
-      (locx[i]=east[i]+((distance[i])*cos(angle[i])))}
+       (locy[i]=north[i]+((distance[i])*sin(angle[i])))&
+       (locx[i]=east[i]+((distance[i])*cos(angle[i])))}
   results=data.frame(locx=locx, locy=locy)
   return(results)
 }
@@ -240,7 +248,7 @@ prepare_input = function(sim.data, locObs, modelParams, otherValues, jScale, urb
   }
   
   
-  # spde components
+  # SPDE components
   
   #jittering the points a bit just to make a mesh
   spde = getSPDEPrior(mesh.s, U=USpatial, alpha=alphaSpatial)
@@ -263,7 +271,7 @@ prepare_input = function(sim.data, locObs, modelParams, otherValues, jScale, urb
                        alpha_pri = c(0, sqrt(1000)), ## normal
                        matern_pri = c(range.sim, 0.5, USpatial =USpatial , alphaSpatial = alphaSpatial))
   
-  # TMB input for the model that accounts for jittering
+  # TMB input for the model that accounts for jittering (Model-J)
   
   # convert urban U/R into TRUE/FALSE
   for (i in 1:length(urban)){
@@ -344,27 +352,28 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   map=list(log_nug_std= as.factor(NA))
   
   fitStandard_start = Sys.time()
-  # 1.STANDARD MODEL
+  
+  # 1.MODEL-S
   # make the autodiff generated likelihood func & gradient
   if (flag2 != 0){
-    objSimple <- MakeADFun(data=data1,
-                           parameters=parameters,
+    objSimple <- MakeADFun(data = data1,
+                           parameters = parameters,
                            map = map,
-                           random=random,
-                           hessian=TRUE,
-                           DLL='standard')
+                           random = random,
+                           hessian = TRUE,
+                           DLL = 'standard')
   } else {
-    objSimple <- MakeADFun(data=data1,
-                           parameters=parameters,
-                           random=random,
-                           hessian=TRUE,
-                           DLL='standard')
+    objSimple <- MakeADFun(data = data1,
+                           parameters = parameters,
+                           random = random,
+                           hessian = TRUE,
+                           DLL = 'standard')
     
   }
   
   # We can normalize the GMRF outside of the nested optimization,
-  # avoiding unnecessary and expensive cholesky operations.
-  objSimple <- normalize(objSimple, flag="flag1", value = 0)
+  # avoiding unnecessary and expensive Cholesky operations.
+  objSimple <- normalize(objSimple, flag = "flag1", value = 0)
   
   #newtonOption(objSimple, smartsearch=TRUE)
   
@@ -374,7 +383,7 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
                  gradient = objSimple[['gr']],
                  lower = rep(-10, length(objSimple[['par']])),
                  upper = rep( 10, length(objSimple[['par']])),
-                 control = list(trace=0))   
+                 control = list(trace = 0))   
   
   # Get standard errors
   SD0 <- TMB::sdreport(objSimple,
@@ -391,7 +400,7 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   
   ## Simulate draws
   rmvnorm_prec <- function(mu, chol_prec, n.sims) {
-    z <- matrix(rnorm(length(mu) * n.sims), ncol=n.sims)
+    z <- matrix(rnorm(length(mu) * n.sims), ncol = n.sims)
     L <- chol_prec #Cholesky(prec, super=TRUE)
     z <- Matrix::solve(L, z, system = "Lt") ## z = Lt^-1 %*% z
     z <- Matrix::solve(L, z, system = "Pt") ## z = Pt    %*% z
@@ -466,7 +475,7 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
                              upper = c(quantile(sp_range_simple_draws, probs = 0.975), quantile(sp_sigma_simple_draws, probs = 0.975), quantile(nugVar_simple_draws, probs = 0.975), quantile(alpha_simple_draws, probs = 0.975)),
                              length = c((quantile(sp_range_simple_draws, probs = 0.975)- c(quantile(sp_range_simple_draws, probs = 0.025))), (quantile(sp_sigma_simple_draws, probs = 0.975)- quantile(sp_sigma_simple_draws, probs = 0.025)), (quantile(nugVar_simple_draws, probs = 0.975) - quantile(nugVar_simple_draws, probs = 0.025)), (quantile(alpha_simple_draws, probs = 0.975) - quantile(alpha_simple_draws, probs = 0.025))))
   # ################################################################################
-  # 2.JITTERING IS ACCOUNTED FOR
+  # 2.MODEL-J
   
   fitJittAcc_start = Sys.time()
   
@@ -487,23 +496,21 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
     
   }
   
-  
-  
   ## Make the autodiff generated likelihood func & gradient
   if (flag2 != 0){
-    obj <- MakeADFun(data=data2,
-                     parameters=paramsNew,
+    obj <- MakeADFun(data = data2,
+                     parameters = paramsNew,
                      map = map,
-                     random=random,
-                     hessian=TRUE,
-                     DLL='jittAccounted')
+                     random = random,
+                     hessian = TRUE,
+                     DLL = 'jittAccounted')
   } else {
     
-    obj <- MakeADFun(data=data2,
-                     parameters=paramsNew,
-                     random=random,
-                     hessian=TRUE,
-                     DLL='jittAccounted')
+    obj <- MakeADFun(data = data2,
+                     parameters = paramsNew,
+                     random = random,
+                     hessian = TRUE,
+                     DLL = 'jittAccounted')
     
   }
   
@@ -511,24 +518,14 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   ## avoiding unnecessary and expensive cholesky operations.
   obj <- normalize(obj, flag="flag1", value = 0)
   
-  #newtonOption(obj, smartsearch=TRUE)
-  
-  #if (flag2 != 0){
-  #save(opt0, data1, data2, i, j, g, l, h, flag2, file = "crashingInputBinomial2ranges2scales.RData") # save the recent values that cause nlminb to crash
-  #} else {
-  #save(opt0, data1, data2, i, j, g, l, h, flag2, file = "crashingInputGaussian2ranges2scales.RData") # save the recent values that cause nlminb to crash
-  #}
-  
   # * Run TMB ----
-  opt0 <- nlminb(start       =    obj[['par']],
-                 objective   =    obj[['fn']],
-                 gradient    =    obj[['gr']],
+  opt0 <- nlminb(start = obj[['par']],
+                 objective = obj[['fn']],
+                 gradient = obj[['gr']],
                  lower = rep(-10, length(obj[['par']])),
                  upper = rep( 10, length(obj[['par']])),
-                 control     =    list(trace=1))    
+                 control = list(trace=1))    
   
-  # par.fixed = c(0.904220,2.98627,-4.30992,-1.04693)
-  # par.fixed2 = c(0.864414,  3.14235, -4.40464, -0.687948)
   # TMB Posterior Sampling ----
   # Get standard errors
   SD0 <- TMB::sdreport(obj,
@@ -542,7 +539,7 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   predictionJittAcc_start = Sys.time()
   
   # Take samples from fitted model
-  mu <- c(SD0$par.fixed,SD0$par.random)
+  mu <- c(SD0$par.fixed, SD0$par.random)
   
   # Simulate draws
   rmvnorm_prec <- function(mu, chol_prec, n.sims) {
@@ -555,20 +552,20 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   }
   L <- Cholesky(SD0[['jointPrecision']], super = T)
   
-  t.draws <- rmvnorm_prec(mu = mu , chol_prec = L, n.sims = 10000)
+  t.draws <- rmvnorm_prec(mu = mu, chol_prec = L, n.sims = 10000)
   
   # Summarize the draws
   parnames <- c(names(SD0[['par.fixed']]), names(SD0[['par.random']]))
-  epsilon_tmb_draws  <- t.draws[parnames == 'Epsilon_s',]
-  alpha_tmb_draws    <- matrix(t.draws[parnames == 'alpha',], nrow = 1)
+  epsilon_tmb_draws <- t.draws[parnames == 'Epsilon_s',]
+  alpha_tmb_draws <- matrix(t.draws[parnames == 'alpha',], nrow = 1)
   
-  log_tau_tmb_draws  <- t.draws[parnames == 'log_tau',]
-  log_kappa_tmb_draws  <- t.draws[parnames == 'log_kappa',]
+  log_tau_tmb_draws <- t.draws[parnames == 'log_tau',]
+  log_kappa_tmb_draws <- t.draws[parnames == 'log_kappa',]
   
   sp_range_tmb_draws = sqrt(8.0)/exp(log_kappa_tmb_draws)
   sp_sigma_tmb_draws = 1.0 / sqrt(4.0 * 3.14159265359 *
                                     exp(2.0 * log_tau_tmb_draws) * exp(2.0 * log_kappa_tmb_draws))
-  log_nug_std_tmb_draws  <- t.draws[parnames == 'log_nug_std',]
+  log_nug_std_tmb_draws <- t.draws[parnames == 'log_nug_std',]
   nugVar_tmb_draws = exp(log_nug_std_tmb_draws)^2
   
   # Project from mesh to raster, add intercept
@@ -589,7 +586,7 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
   
   coverage2 = coverage2/nPred
   
-  # scores when jittering is accounted for
+  # scores when jittering is accounted for (Model-J)
   Logscores2 = logs_sample(y = simulatedField_trueIntercept, dat = pred_tmb)
   Logscores2 = mean(Logscores2)
   
@@ -638,247 +635,3 @@ FitSamplePredict = function(nLoc, intercept, data1, data2, parameters, random, f
               predCoords = predCoords))
 }
 
-# functions for calculating point in polygon. Unfortunately, these all seem to be 
-# slower than `over'
-# # function adapted from SDMTools and 
-# # https://stackoverflow.com/questions/49828692/determine-if-a-given-lat-lon-belong-to-a-polygon
-# pnt.in.poly2 <- function(pnts, poly.pnts){
-#   if (poly.pnts[1, 1] == poly.pnts[nrow(poly.pnts), 1] && 
-#       poly.pnts[1, 2] == poly.pnts[nrow(poly.pnts), 2]){ 
-#     poly.pnts = poly.pnts[-1, ]
-#   }
-#   out = pip(pnts[, 1], pnts[, 2], nrow(pnts), poly.pnts[,1], poly.pnts[, 2], nrow(poly.pnts))
-#   return(out)
-# }
-
-# cppFunction('SEXP pip(SEXP pntx, SEXP pnty, SEXP pntn, SEXP polyx, SEXP polyy, SEXP polyn)
-# {
-#   // define constants
-#   double TWOPI = 2 * PI;
-#   double epsilon = 0.000000000001; // threshold value
-# 
-# 	//define the pointers to the variables
-# 	PROTECT(pntx = Rf_coerceVector(pntx, REALSXP)); double *ptx = REAL(pntx); // pnts x values
-# 	PROTECT(pnty = Rf_coerceVector(pnty, REALSXP)); double *pty = REAL(pnty); // pnts y values
-# 	PROTECT(pntn = Rf_coerceVector(pntn, INTSXP)); int npt = INTEGER(pntn)[0]; // number of points
-# 	PROTECT(polyx = Rf_coerceVector(polyx, REALSXP)); double *plx = REAL(polyx); // polygon x values
-# 	PROTECT(polyy = Rf_coerceVector(polyy, REALSXP)); double *ply = REAL(polyy); // polygon y values
-# 	PROTECT(polyn = Rf_coerceVector(polyn, INTSXP)); int npl = INTEGER(polyn)[0]; // number of polygon points
-# 
-# 	//define the output variables
-# 	SEXP ans; int *out;
-# 	PROTECT(ans = Rf_allocVector(INTSXP, npt)); out = INTEGER(ans); //pointer to output dataset
-# 
-# 	//define some other variables
-# 	int ii, jj;
-# 	double x, x1, x2, y, y1, y2, dy, dx, dd;
-# 
-# 	//cycle through the points
-# 	for (ii=0;ii<npt;ii++) {
-# 		//cycle through the polygon vertices and sum the angles
-# 		double angle = 0.0;
-# 		for (jj=0;jj<npl;jj++) {
-# 			//define the points
-# 			x1 = plx[jj]; x2 = plx[(jj+1) % npl]; x = ptx[ii];
-# 			y1 = ply[jj]; y2 = ply[(jj+1) % npl]; y = pty[ii];
-# 			//check if point are vertix
-# 			if (x == x1 && y == y1) { angle = PI+1; break; }
-# 			//check if point is on border line between 2 points
-# 			if (x == x1 && x == x2) { if ((y1 <= y && y <= y2) || (y1 >= y && y >= y2)) { angle = PI+1; break; } } // check point between two horizontal points
-# 			if (y == y1 && y == y2) { if ((x1 <= x && x <= x2) || (x1 >= x && x >= x2)) { angle = PI+1; break; } } // check point between two verticle points
-# 			dy = (y1==y2) ? -9999:(y1-y)/(y1-y2); //check if the relative change in x == relative change in y
-# 			dx = (x1==x2) ? -9999:(x1-x)/(x1-x2); //check if the relative change in x == relative change in y
-# 			dd = dy-dx; dd = (dd<0) ? -dd:dd;
-# 			if (dd < epsilon && dy>0 && dy<1) { angle = PI+1; break; } // if dx == dy and dy is between 0 & 1 ... point is on the border line
-# 			// && dy > 0 && dy < 1
-# 			//if not a vertex or on border lines... sum the angles
-# 			double dtheta = atan2(y2 - y, x2 - x) - atan2(y1 - y, x1 - x);
-# 			while (dtheta > PI) dtheta -= TWOPI;
-# 			while (dtheta < -PI) dtheta += TWOPI;
-# 			angle += dtheta;
-# 		}
-# 		//write out if point is in polygon
-# 		if (fabs(angle) < PI) { out[ii] = 0; } else { out[ii] = 1; }
-# 	}
-# 
-# 	//return the output data
-# 	UNPROTECT(7);
-#     return(ans);
-# 
-# }')
-
-# function adapted from SDMTools and 
-# https://stackoverflow.com/questions/49828692/determine-if-a-given-lat-lon-belong-to-a-polygon
-# pnt.in.poly2 <- function(pnts, poly.pnts){
-#   if (poly.pnts[1, 1] == poly.pnts[nrow(poly.pnts), 1] && 
-#       poly.pnts[1, 2] == poly.pnts[nrow(poly.pnts), 2]){ 
-#     poly.pnts = poly.pnts[-1, ]
-#   }
-#   out = pip(pnts[, 1], pnts[, 2], nrow(pnts), poly.pnts[,1], poly.pnts[, 2], nrow(poly.pnts))
-#   return(out)
-# }
-
-# function from 
-# https://stackoverflow.com/questions/36683825/how-to-check-if-a-point-is-in-a-polygon-effectively-using-r-for-large-data-set
-# cppFunction('bool pnpoly(const arma::rowvec& point, const arma::mat& bp) {
-#     // Implementation of the ray-casting algorithm is based on
-#     // 
-#     unsigned int i, j;
-# 
-#     double x = point(0), y = point(1);
-# 
-#     bool inside = false;
-#     for (i = 0, j = bp.n_rows - 1; i < bp.n_rows; j = i++) {
-#       double xi = bp(i,0), yi = bp(i,1);
-#       double xj = bp(j,0), yj = bp(j,1);
-# 
-#       // See if point is inside polygon
-#       inside ^= (((yi >= y) != (yj >= y)) && (x <= (xj - xi) * (y - yi) / (yj - yi) + xi));
-#     }
-# 
-#     // Is the cat alive or dead?
-#     return inside;
-# }', depends="RcppArmadillo")
-
-
-
-makeGreenSequentialColors = function(n, ggplot=FALSE) {
-  # library("colorspace")
-  # pal <-choose_palette()
-  # sequential_hcl(n, h1=260, c1=80, l1=30, l2=90, p1=1.5, rev=TRUE)
-  if(!ggplot)
-    sequential_hcl(n, h1=128, c1=100, l1=72, l2=95, p1=1.0, rev=TRUE)
-  else
-    scale_colour_continuous_sequential(h1=128, c1=100, l1=72, l2=95, p1=1.0, rev=TRUE, n_interp=n)
-}
-
-# given continuous color scale and range, chooses colors based on a set of values
-getColorsFromScale = function(vals, valRange=NULL, cols, scaleFun=function(x) {x}, 
-                              forceValuesInRange=FALSE) {
-  
-  if(is.null(valRange)) {
-    nas = !is.finite(scaleFun(vals))
-    valRange = range(vals[!nas])
-  }
-  
-  if(forceValuesInRange) {
-    vals[vals < valRange[1]] = valRange[1]
-    vals[vals > valRange[2]] = valRange[2]
-  }
-  
-  valRange = scaleFun(valRange)
-  vals = scaleFun(vals)
-  vals = vals - valRange[1]
-  vals = vals/(valRange[2] - valRange[1])
-  col = cols[round(vals*(length(cols)-1))+1]
-  
-  col
-}
-
-plotWithColor = function(x, y, z, zlim=NULL, colScale=tim.colors(), 
-                         legend.mar=7, new=TRUE, scaleFun = function(x) {x}, scaleFunInverse = function(x) {x}, 
-                         n.ticks=5, min.n=5, ticks=NULL, tickLabels=NULL, legend.width=1.2, addColorBar=TRUE, 
-                         legendArgs=list(), leaveRoomForLegend=TRUE, forceColorsInRange=FALSE, orderI=NULL, 
-                         ordering=c("none", "increasing", "decreasing"), colorName = c("col", "bg"), ...) {
-  ordering = match.arg(ordering)
-  colorName = match.arg(colorName)
-  
-  # remove NA points
-  nas = is.na(x) | is.na(y) | is.na(z)
-  if(any(nas)) {
-    warning("Removing NAs")
-    x = x[!nas]
-    y = y[!nas]
-    z = z[!nas]
-  }
-  
-  # do setup for ploting data if necessary
-  if(is.null(zlim)) {
-    nas = !is.finite(scaleFun(z))
-    zlim = range(z[!nas])
-  }
-  
-  # order the plotting of the points
-  if(is.null(orderI)) {
-    if(ordering == "increasing") {
-      orderI = sort(z, index.return=TRUE)$ix
-    } else if(ordering == "decreasing") {
-      orderI = sort(z, decreasing=TRUE, index.return=TRUE)$ix
-    } else {
-      orderI = 1:length(z)
-    }
-  }
-  x = x[orderI]
-  y = y[orderI]
-  z = z[orderI]
-  
-  # if(forceColorsInRange) {
-  #   z[z > zlim[2]] = zlim[2]
-  #   z[z < zlim[1]] = zlim[1]
-  # }
-  
-  # get colors of points
-  cols = getColorsFromScale(z, zlim, colScale, scaleFun, forceColorsInRange)
-  
-  # generate new plot if necessary
-  # browser()
-  if(new) {
-    # set graphical parameters so the legend won't overlap with plot
-    currPar = par()
-    newPar = currPar
-    newMar = newPar$mar
-    if(leaveRoomForLegend) {
-      newMar[4] = max(newMar[4], legend.mar)
-      newPar$mar = newMar
-    }
-    if(currPar$mar[4] != newMar[4])
-      suppressWarnings({par(newPar)})
-    
-    # par( oma=c( 0,0,0,6)) # leave room for the legend
-    if(colorName == "col") {
-      do.call("plot", c(list(x=x, y=y, col=cols), list(...)))
-    } else {
-      do.call("plot", c(list(x=x, y=y, bg=cols), list(...)))
-    }
-  } else {
-    if(colorName == "col") {
-      do.call("points", c(list(x=x, y=y, col=cols), list(...)))
-    } else {
-      do.call("points", c(list(x=x, y=y, bg=cols), list(...)))
-    }
-  }
-  
-  if(addColorBar) {
-    # add legend
-    # par( oma=c(0,0,0,2))
-    if(is.null(ticks))
-      ticks = scaleFun(pretty(zlim, n=n.ticks, min.n=min.n))
-    else
-      ticks = scaleFun(ticks)
-    if(is.null(tickLabels))
-      tickLabels = scaleFunInverse(ticks)
-    
-    # par( oma=c( 0,0,0,3))
-    
-    # set list of arguments to image.plot
-    legendArgs$zlim=scaleFun(zlim)
-    legendArgs$nlevel=length(colScale)
-    legendArgs$legend.only=TRUE
-    legendArgs$horizontal=FALSE
-    legendArgs$col=colScale
-    legendArgs$add = TRUE
-    if(is.null(legendArgs$axis.args))
-      legendArgs$axis.args=list(at=ticks, labels=tickLabels)
-    else {
-      legendArgs$axis.args$at=ticks
-      legendArgs$axis.args$labels=tickLabels
-    }
-    legendArgs$legend.mar=legend.mar
-    legendArgs$legend.width=legend.width
-    do.call("image.plot", legendArgs)
-    
-    # image.plot(zlim=zlim, nlevel=length(cols), legend.only=TRUE, horizontal=FALSE, 
-    #            col=cols, add = TRUE)
-  }
-  invisible(NULL)
-}
