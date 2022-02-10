@@ -1,15 +1,12 @@
-################################################################################
-# Simulation.R                                                                 #
-#    This is the main script for the code used to generate results for our     #
-#    manuscript.                                                               #
-################################################################################
+#=========================== SIMULATIONS  =====================================                           
+#    This is the main script for the code used to generate results for our     
+#    manuscript.                                                               
 
 
-
-  ## Initialization ----
+# Section 1 : Initialization ===================================================
 
   
-# Libraries
+##i. Libraries----
 library(SUMMER)
 library(rgdal)
 library(foreign)
@@ -20,51 +17,51 @@ library(foreach)
 library(geosphere)
 
 
-# Functions 
+##ii. Functions----
 source("modSPDEJitter.R")
 source("makeIntegrationPoints.R")
 source('functions.R')
 
 
 
-  ## Setup ----
+# Section 2 : Setup ============================================================
 
 
-
-# Spatial Range (in kilometers) 
+##i. Spatial Range----
+#(in kilometers) 
 rangeSc <- c(160, 340)
 
-# Sub-integration points
+##ii. Sub-integration points----
 
 nSubRPerPoint <- 10
 nSubAPerPoint <- 10
 
-# Jittering Scheme  ( 1--> DHS jittering, 4--> Extra jittering) 
+##iii. Jittering Scheme----
+#( 1--> DHS jittering, 4--> Extra jittering) 
 scaleSc <- c(1, 4)
 
-# Likelihood : 1st element  : 0/1 stands for Gaussian/Binomial
+##iv. Likelihood----
+#1st element  : 0/1 stands for Gaussian/Binomial
 
-#Gaussian
+###a) Gaussian----
 likelihoodSc <- as.matrix(rbind(likelihood = c(0), nuggetVar = c(0.1), p = c(0)))
-#Binomial
+###b) Binomial----
 likelihoodSc <- as.matrix(rbind(likelihood = c(1), nuggetVar = c(0), p = c(0.5)))
 
-# Provincial Boundaries 
+##v. Provincial Boundaries---- 
 boundarySc <- TRUE   #: jittering is done by respecting admin1 borders
 boundarySc <- FALSE  #: jittering is done by not respecting admin1 borders
 
-# Number of simulations per scenario
+##vi. Number of simulations per scenario----
 nSim <- 50  
 
 
- 
-## Simulate Data ----
-
+# Section 3 : Simulate Data ====================================================
 
 
 set.seed(2345)
 
-# Geography data 
+##i. Geography data and responses----
 
 # # Geography and demography data obtained from SUMMER package
 
@@ -114,15 +111,14 @@ check1 <- over(true_latLon, adm1Kenya, returnList = FALSE)
 locKM <- kenya.data[,c("east", "north")]
 
 
-## Simulation 
-#Settings
+##ii. Simulation Settings----
 intercept <- 1
 sigma.sim <- 1
 simLoc <- rbind(as.matrix(kenya.data[, c("east", "north")]), predCoords)
 ns <- rep(100, dim(simLoc)[1])
 
 
-#Simulate the responses and the spatial field
+##iii. Simulate the responses and the spatial field----
 
 simulatedData <- list()
 
@@ -156,7 +152,7 @@ for (g in 1:length(boundarySc)){
   simulatedData[[g]] <- temp1
 }
 
-#Construct the mesh
+##iv. Construct the mesh----
 mesh.s <- inla.mesh.2d(loc.domain = cbind(kenya.data$east, kenya.data$north),
                        n=5000, 
                        max.n=10000,
@@ -165,13 +161,13 @@ mesh.s <- inla.mesh.2d(loc.domain = cbind(kenya.data$east, kenya.data$north),
                        max.edge=c(25, 50))
 
 
-## Compile .cpp files ----
+# Section 4 : Compile C++ files ================================================
 
-# Model-S
+##i. Model-S----
 compile( "standard.cpp")
 dyn.load( dynlib("standard") )
 
-# Model-J
+##ii. Model-J----
 compile( "jittAccounted.cpp")
 dyn.load( dynlib("jittAccounted"))
 
@@ -179,7 +175,7 @@ save.image("tempImage.RData")
 load("tempImage.RData")
 # 
 
-## Set up parallel processes ----
+# Section 5 : Set up parallel processes ========================================
 
 # Set seeds for main and parallel processes
 set.seed(123)
@@ -210,35 +206,42 @@ clusterEvalQ(cl, {
 clusterExport(cl, c("allSeeds", "totalIter"))
 
 
-## Prepare Inputs ----
-
-# Prepare inputs for model fitting with TMB
+# Section 6 : Prepare Inputs ===================================================
 
 inputs <- list()
 locations <- list()
 startTime <- proc.time()[3]
+
 for (g in 1:length(boundarySc)){
+  
   tempInput1 <- list()
   tempLoc1 <- list()
+  
   for (i in 1:length(likelihoodSc[1,])){
+    
     tempInput2 <- list()
     tempLoc2 <- list()
+    
     for (j in 1:length(rangeSc)){
+      
       tempInput3 <- list()
       tempLoc3 <- list()
+      
       for (h in 1:length(scaleSc)){
+        
         tempInput4 <- list()
         tempLoc4 <- list()
         
-        theseIters <- (g-1)*length(likelihoodSc[1,])*length(rangeSc)*length(scaleSc)*nSim + 
-            (i-1) * length(rangeSc)*length(scaleSc)*nSim + 
-          (j-1) * length(scaleSc) + 
-          (h-1) * nSim + 1:nSim
-        clusterExport(cl, "theseIters")
-        # set seeds
+          theseIters <- (g-1)*length(likelihoodSc[1,])*length(rangeSc)*length(scaleSc)*nSim + 
+                        (i-1) * length(rangeSc)*length(scaleSc)*nSim + 
+                        (j-1) * length(scaleSc) + 
+                        (h-1) * nSim + 1:nSim
+        
+          clusterExport(cl, "theseIters")
+        
 
                 # for(l in 1:nSim){
-        innerForFun <- function(l) {
+          innerForFun <- function(l) {
           # print(paste0("g: ", g, "/", length(boundarySc), 
           #              ", i: ", i, "/", length(likelihoodSc[1,]), ", ", 
           #              ", j: ", j, "/", length(rangeSc), 
@@ -266,7 +269,6 @@ for (g in 1:length(boundarySc)){
                              flag2 = flag2,
                              jScale = jScale)
           
-          
           # TMB Input
           locObs <- Displace(scale = jScale, 
                             locKM = locKM, 
@@ -274,7 +276,6 @@ for (g in 1:length(boundarySc)){
                             KenyaShapeFile = adm1Kenya, 
                             check1 = check1, 
                             boundary = boundary)
-          
           
           locObs <- cbind(locObs[[1]][["east"]], locObs[[1]][["north"]])
           
@@ -317,24 +318,30 @@ for (g in 1:length(boundarySc)){
         currTime <- proc.time()[3]
         timeDiff <- currTime - startTime
         numIter <- (g-1)*length(likelihoodSc[1,])*length(rangeSc)*length(scaleSc)*nSim + 
-          (i-1) * length(rangeSc)*length(scaleSc)*nSim + 
-          (j-1) * length(scaleSc) + 
-          (h-1) * nSim + 
-          l
+                   (i-1) * length(rangeSc)*length(scaleSc)*nSim + 
+                   (j-1) * length(scaleSc) + 
+                   (h-1) * nSim + 
+                   l
         propDone <- numIter/totalIter
         timeRemainingEstimate <- timeDiff * (1 / propDone) - timeDiff
         print(paste0("Estimated time remaining: ", round(timeRemainingEstimate/60/60, digits=2), " hours..."))
       }
+      
       tempInput2[[j]] <- tempInput3
       tempLoc2[[j]] <- tempLoc3
+      
     }
     
     tempInput1[[i]] <- tempInput2
     tempLoc1[[i]] <- tempLoc2
+    
   }
+  
   inputs[[g]] <- tempInput1
   locations[[g]] <- tempLoc1
+  
 }
+
 stopCluster(cl)
 
 
@@ -350,56 +357,70 @@ tmb_params <- list(alpha = 0.0, # intercept
 rand_effs <- c('Epsilon_s')
 
 
-## Model fitting with TMB ----
+# Section 7 : Model fitting with TMB ===========================================
 
 nLoc <- length(kenya.data$east)
 
 AdministrativeBorders <- list()
 
 for (g in 1:length(boundarySc)){
+  
   Likelihoods <- list()
+  
   for (i in 1:length(likelihoodSc[1,])){
+    
     SpatialRanges <- list()
+    
     for (j in 1:length(rangeSc)){
+      
       JitteringFactors <- list()
+      
       for (h in 1:length(scaleSc)){
         
         data1 <- list()
         data2 <- list()
         u.sim <- list()
         flag2 <- list()
+        
         for (l in 1:nSim){
-          data1[[l]] = inputs[[g]][[i]][[j]][[h]][[l]][["data_standard"]]
-          data2[[l]] = inputs[[g]][[i]][[j]][[h]][[l]][["data_jittAccounted"]] # data for jittering accounted
-          u.sim[[l]] = simulatedData[[g]][[i]][[j]][[h]][[l]][["u.sim"]][-(1:nLoc)]
-          flag2[[l]] = likelihoodSc[[1, i]]
+        data1[[l]] = inputs[[g]][[i]][[j]][[h]][[l]][["data_standard"]]
+        data2[[l]] = inputs[[g]][[i]][[j]][[h]][[l]][["data_jittAccounted"]] # data for jittering accounted
+        u.sim[[l]] = simulatedData[[g]][[i]][[j]][[h]][[l]][["u.sim"]][-(1:nLoc)]
+        flag2[[l]] = likelihoodSc[[1, i]]
         }
         
         Simulations <- list()
+        
         for(l in 1:nSim){ 
-          Simulations[[l]] <- try(FitSamplePredict(nLoc =nLoc, 
-                                                  intercept = 1, 
-                                                  data1 = data1[[l]], 
-                                                  data2 = data2[[l]], 
-                                                  parameters = tmb_params, 
-                                                  random = rand_effs, 
-                                                  flag2 = flag2[[l]],
-                                                  predCoords = predCoords, 
-                                                  mesh.s = mesh.s,
-                                                  u.sim = u.sim[[l]]), TRUE)
+          
+        Simulations[[l]] <- try(FitSamplePredict(nLoc =nLoc, 
+                                                intercept = 1, 
+                                                data1 = data1[[l]], 
+                                                data2 = data2[[l]], 
+                                                parameters = tmb_params, 
+                                                random = rand_effs, 
+                                                flag2 = flag2[[l]],
+                                                predCoords = predCoords, 
+                                                mesh.s = mesh.s,
+                                                u.sim = u.sim[[l]]), TRUE)
         }
         
         save(Simulations, g, i, j, h, file = "tempResults.RData")
         
         JitteringFactors[[h]] <- Simulations
+        
       }
+      
       SpatialRanges[[j]] <- JitteringFactors
+      
     }
     
     Likelihoods[[i]] <- SpatialRanges
+    
   }
   
   AdministrativeBorders[[g]] <- Likelihoods
+  
 }
 
 fitted <- list(AdministrativeBorders)
